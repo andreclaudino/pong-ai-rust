@@ -5,18 +5,20 @@ pub struct Entity {
     pub texture: Texture,
     pub position: Vec2<f32>,
     pub velocity: Vec2<f32>,
+    pub score: u32
 }
 
 impl Entity {
     pub fn new(texture: Texture, position: Vec2<f32>) -> Entity {
-        Entity {texture, position, velocity: Vec2::zero()}
+        Entity {texture, position, velocity: Vec2::zero(), score: 0}
     }
 
     pub fn with_velocity(texture: Texture, position: Vec2<f32>, velocity: Vec2<f32>) -> Entity {
         Entity{
             texture,
             position,
-            velocity
+            velocity,
+            score: 0
         }
     }
 
