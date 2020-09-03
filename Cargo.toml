@@ -5,4 +5,4 @@ authors = ["André Claudino <andre.claudino@b2wdigital.com>"]
 edition = "2018"
 
 [dependencies]
-tetra = "0.4"
+tetra = "0.5"
