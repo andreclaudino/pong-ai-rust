@@ -1,17 +1,11 @@
-use tetra::ContextBuilder;
-
-mod game_state;
-use game_state::GameState;
+mod game_entry;
+use game_entry::start_pong;
 
 mod constants;
-use constants::{WINDOW_WIDTH, WINDOW_HEIGHT};
-
 mod entity;
 
+mod game_state;
 
 fn main() -> tetra::Result {
-    ContextBuilder::new("Pong",WINDOW_WIDTH as i32, WINDOW_HEIGHT as i32)
-        .quit_on_escape(true)
-        .build()?
-        .run(GameState::new)
+    start_pong()
 }

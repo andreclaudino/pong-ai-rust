@@ -6,3 +6,30 @@ edition = "2018"
 
 [dependencies]
 tetra = "0.5"
+
+[dependencies.pyo3]
+version = "0.11.1"
+features = ["extension-module"]
+
+[package.metadata.maturin]
+requires-dist = ["tensorflow==2.1.0"]
+
+[package.metadata.maturin.scripts]
+pypong = "pypong.stater:main"
+
+[build-system]
+requires = ["maturin"]
+build-backend = "maturin"
+
+[tool.maturin]
+bindings = "cffi"
+manylinux = "off"
+
+[lib]
+name = "pong_library"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "pong"
+path = "src/main.rs"
