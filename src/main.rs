@@ -5,7 +5,10 @@ mod constants;
 mod entity;
 
 mod game_state;
+mod action_state;
 
 fn main() -> tetra::Result {
-    start_pong()
+    start_pong();
+
+    Ok(())
 }

@@ -1,24 +1,40 @@
 use tetra::graphics::{Texture, Rectangle};
 use tetra::math::Vec2;
 
+#[derive(Debug, Clone)]
 pub struct Entity {
     pub texture: Texture,
+    pub coordinates: Coordinates,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Coordinates {
     pub position: Vec2<f32>,
     pub velocity: Vec2<f32>,
     pub score: u32
 }
 
-impl Entity {
-    pub fn new(texture: Texture, position: Vec2<f32>) -> Entity {
-        Entity {texture, position, velocity: Vec2::zero(), score: 0}
-    }
-
-    pub fn with_velocity(texture: Texture, position: Vec2<f32>, velocity: Vec2<f32>) -> Entity {
-        Entity{
-            texture,
+impl Coordinates {
+    pub fn empty(position: Vec2<f32>, velocity: Vec2<f32>) -> Coordinates {
+        Coordinates {
             position,
             velocity,
             score: 0
+        }
+    }
+}
+
+impl Entity {
+    pub fn new(texture: Texture, position: Vec2<f32>) -> Entity {
+        let coordinates = Coordinates{position, velocity: Vec2::zero(), score: 0};
+        Entity {texture, coordinates}
+    }
+
+    pub fn with_velocity(texture: Texture, position: Vec2<f32>, velocity: Vec2<f32>) -> Entity {
+        let coordinates = Coordinates{position, velocity, score: 0};
+        Entity{
+            texture,
+            coordinates
         }
     }
 
@@ -32,8 +48,8 @@ impl Entity {
 
     pub fn bounds(&self) -> Rectangle {
         Rectangle::new(
-            self.position.x,
-            self.position.y,
+            self.coordinates.position.x,
+            self.coordinates.position.y,
             self.width(),
             self.height()
         )
@@ -41,8 +57,8 @@ impl Entity {
 
     pub fn centre(&self) -> Vec2<f32> {
         Vec2::new(
-            self.position.x + (self.width() / 2.0),
-            self.position.y + (self.height() / 2.0),
+            self.coordinates.position.x + (self.width() / 2.0),
+            self.coordinates.position.y + (self.height() / 2.0),
         )
     }
 }

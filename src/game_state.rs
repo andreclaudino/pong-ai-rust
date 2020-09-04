@@ -4,9 +4,11 @@ use tetra::math::Vec2;
 use tetra::{Context, State};
 use tetra::input::{self, Key};
 use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION};
-use crate::entity::Entity;
+use crate::entity::{Entity, Coordinates};
+use crate::action_state::{ActionState, Direction};
+use tetra;
 
-
+#[derive(Debug, Clone)]
 pub struct GameState {
     player1: Entity,
     player2: Entity,
@@ -16,7 +18,9 @@ pub struct GameState {
     score2: Text,
 
     score1_position: Vec2<f32>,
-    score2_position: Vec2<f32>
+    score2_position: Vec2<f32>,
+
+    pub action_state: ActionState,
 }
 
 impl GameState {
@@ -58,7 +62,9 @@ impl GameState {
             
             score1, score2,
             score1_position,
-            score2_position
+            score2_position,
+
+            action_state: ActionState::empty()
         })
     }
 
@@ -67,31 +73,41 @@ impl GameState {
             PADDLE_X_POSITION,
             (WINDOW_HEIGHT - self.player1.texture.height() as f32) / 2.0,
         );
-        self.player1.position = player1_position;
+        self.player1.coordinates.position = player1_position;
 
         let player2_position = Vec2::new(
             WINDOW_WIDTH - self.player2.texture.width() as f32 - PADDLE_X_POSITION,
             (WINDOW_HEIGHT - self.player2.texture.height() as f32) / 2.0,
         );
-        self.player2.position = player2_position;
+        self.player2.coordinates.position = player2_position;
 
         let ball_position = Vec2::new(
             (WINDOW_WIDTH - self.ball.texture.width() as f32)/2.0,
             (WINDOW_HEIGHT - self.ball.texture.height() as f32)/2.0
         );
-        self.ball.position = ball_position;
-        self.ball.velocity = Vec2::new(direction as f32 * BALL_SPEED, 0.0);
+        self.ball.coordinates.position = ball_position;
+        self.ball.coordinates.velocity = Vec2::new(direction as f32 * BALL_SPEED, 0.0);
+    }
+
+    pub fn coordinates(self) -> (Coordinates, Coordinates, Coordinates){
+        let player1 = self.player1.coordinates;
+        let player2 = self.player2.coordinates;
+        let ball = self.ball.coordinates;
+
+        (player1, player2, ball)
+        
     }
 }
+
 
 impl State for GameState {
     
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         graphics::clear(ctx, Color::rgb(0., 0., 0.));
         
-        graphics::draw(ctx, &self.player1.texture, self.player1.position);
-        graphics::draw(ctx, &self.player2.texture, self.player2.position);
-        graphics::draw(ctx, &self.ball.texture, self.ball.position);
+        graphics::draw(ctx, &self.player1.texture, self.player1.coordinates.position);
+        graphics::draw(ctx, &self.player2.texture, self.player2.coordinates.position);
+        graphics::draw(ctx, &self.ball.texture, self.ball.coordinates.position);
 
         let draw_params1 = DrawParams::new()
             .color(Color::rgb(1.0, 1.0, 1.0))
@@ -103,29 +119,41 @@ impl State for GameState {
             .position(self.score2_position);
         graphics::draw(ctx, &self.score2, draw_params2);
         
-        self.ball.position += self.ball.velocity;
+        self.ball.coordinates.position += self.ball.coordinates.velocity;
 
         Ok(())
     }
-
+    
     fn update(&mut self, ctx: &mut Context) -> tetra::Result {
         
         if input::is_key_down(ctx, Key::W) {
-            self.player1.position.y -= PADDLE_SPEED;
-        }
-
-        if input::is_key_down(ctx, Key::S) {
-            self.player1.position.y += PADDLE_SPEED;
+            self.action_state.move_p1(Some(Direction::Up));
+        } else if input::is_key_down(ctx, Key::S) {
+            self.action_state.move_p1(Some(Direction::Down));
+        } else {
+            self.action_state.move_p1(None);
         }
 
         if input::is_key_down(ctx, Key::Up) {
-            self.player2.position.y -= PADDLE_SPEED;
+            self.action_state.move_p2(Some(Direction::Up));
+        } else if input::is_key_down(ctx, Key::Down) {
+            self.action_state.move_p2(Some(Direction::Down));
+        } else {
+            self.action_state.move_p2(None);
+        }
+        
+        match self.action_state.player1 {
+            Some(Direction::Up) => self.player1.coordinates.position.y += PADDLE_SPEED,
+            Some(Direction::Down) => self.player1.coordinates.position.y -= PADDLE_SPEED,
+            None => ()
         }
 
-        if input::is_key_down(ctx, Key::Down) {
-            self.player2.position.y += PADDLE_SPEED;
+        match self.action_state.player2 {
+            Some(Direction::Up) => self.player2.coordinates.position.y += PADDLE_SPEED,
+            Some(Direction::Down) => self.player2.coordinates.position.y -= PADDLE_SPEED,
+            None => ()
         }
-    
+
         let player1_bounds = self.player1.bounds();
         let player2_bounds = self.player2.bounds();
         let ball_bounds = self.ball.bounds();
@@ -139,33 +167,38 @@ impl State for GameState {
         };
 
         if let Some(paddle) = paddle_hit {
-            self.ball.velocity.x = -(self.ball.velocity.x + (BALL_ACC * self.ball.velocity.x.signum()));
+            self.ball.coordinates.velocity.x = -(self.ball.coordinates.velocity.x + (BALL_ACC * self.ball.coordinates.velocity.x.signum()));
             let offset = (paddle.centre().y - self.ball.centre().y) / paddle.height();
 
-            self.ball.velocity.y += PADDLE_SPIN * -offset;
+            self.ball.coordinates.velocity.y += PADDLE_SPIN * -offset;
         }
 
-        if self.ball.position.y <= 0.0 || self.ball.position.y + self.ball.height() >= WINDOW_HEIGHT
-        {
-            self.ball.velocity.y = -self.ball.velocity.y;
+        if self.ball.coordinates.position.y <= 0.0 || self.ball.coordinates.position.y + self.ball.height() >= WINDOW_HEIGHT {
+            self.ball.coordinates.velocity.y = -self.ball.coordinates.velocity.y;
         }
 
-        if self.ball.position.x < 0.0 {
+        if self.ball.coordinates.position.x < 0.0 {
             self.reset(-1);
-            self.player2.score += 1;
-            self.score2.set_content(format!("{}", self.player2.score));
+            self.player2.coordinates.score += 1;
+            self.score2.set_content(format!("{}", self.player2.coordinates.score));
             if let Some(optional_score2) = self.score2.get_bounds(ctx) {
                 self.score2_position.x = WINDOW_WIDTH - (16.0 + optional_score2.width);
             }
             println!("Player 2 wins!");
         }
 
-        if self.ball.position.x > WINDOW_WIDTH {
+        if self.ball.coordinates.position.x > WINDOW_WIDTH {
             self.reset(1);
-            self.player1.score += 1;
-            self.score1.set_content(format!("{}", self.player1.score));
+            self.player1.coordinates.score += 1;
+            self.score1.set_content(format!("{}", self.player1.coordinates.score));
             println!("Player 1 wins!");
         }
+
+        let player1 = self.player1.coordinates;
+        let player2 = self.player2.coordinates;
+        let ball = self.ball.coordinates;
+
+        println!("{:?}, {:?}, {:?}", player1, player2, ball);
 
         Ok(())
     }
