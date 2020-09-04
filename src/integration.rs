@@ -11,6 +11,11 @@ pub struct ReportState {
     action2: Vec<f32>
 }
 
+#[derive(Deserialize)]
+struct ResponseAction {
+    action: Option<String>
+}
+
 impl ReportState {
     pub fn new(player1: Coordinates, player2: Coordinates, ball: Coordinates, actions: ActionState) -> ReportState {
 
@@ -41,26 +46,39 @@ pub fn finish(base: &str, reported_state: ReportState) -> () {
 
     let client = reqwest::blocking::Client::new();
 
-    let url = format!("{}/{}", base, "/buffer/finish");
+    let url = format!("{}/{}", base, "buffer/finish");
 
     client.post(url.as_str())
         .json(&reported_state)
         .send()
         .unwrap();
-    
     ()
 }
 
-pub fn report_buffer(base: &str, reported_state: ReportState) -> () { 
+pub fn report_buffer(base: &str, reported_state: ReportState) -> Option<Direction> { 
 
     let client = reqwest::blocking::Client::new();
 
-    let url = format!("{}/{}", base, "/buffer");
+    let url = format!("{}/{}", base, "buffer");
 
-    client.post(url.as_str())
-        .json(&reported_state)
-        .send()
-        .unwrap();
+    let response = 
+        client.post(url.as_str())
+            .json(&reported_state)
+            .send()
+            .unwrap();
     
-    ()
+    match response.json::<ResponseAction>() {
+        Ok(response_acton) =>
+            {
+                if response_acton.action == Some("Up".to_string()) {
+                    Some(Direction::Up)
+                } else
+                if response_acton.action == Some("Down".to_string()) {
+                    Some(Direction::Down)
+                } else {
+                    None
+                }
+            },
+        _ => None
+    }
 }
