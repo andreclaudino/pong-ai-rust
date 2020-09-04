@@ -1,6 +1,7 @@
 use tetra::graphics::{Texture, Rectangle};
 use tetra::math::Vec2;
 
+
 #[derive(Debug, Clone)]
 pub struct Entity {
     pub texture: Texture,
@@ -12,16 +13,6 @@ pub struct Coordinates {
     pub position: Vec2<f32>,
     pub velocity: Vec2<f32>,
     pub score: u32
-}
-
-impl Coordinates {
-    pub fn empty(position: Vec2<f32>, velocity: Vec2<f32>) -> Coordinates {
-        Coordinates {
-            position,
-            velocity,
-            score: 0
-        }
-    }
 }
 
 impl Entity {

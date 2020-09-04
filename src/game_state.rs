@@ -3,8 +3,9 @@ use tetra::graphics::text::{Font, Text};
 use tetra::math::Vec2;
 use tetra::{Context, State};
 use tetra::input::{self, Key};
-use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION};
-use crate::entity::{Entity, Coordinates};
+use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, DEFAULT_REPORT_URL};
+use crate::entity::Entity;
+use crate::integration::{report_buffer, ReportState, finish};
 use crate::action_state::{ActionState, Direction};
 use tetra;
 
@@ -21,6 +22,7 @@ pub struct GameState {
     score2_position: Vec2<f32>,
 
     pub action_state: ActionState,
+    sents: u32
 }
 
 impl GameState {
@@ -64,6 +66,7 @@ impl GameState {
             score1_position,
             score2_position,
 
+            sents: 0,
             action_state: ActionState::empty()
         })
     }
@@ -89,12 +92,13 @@ impl GameState {
         self.ball.coordinates.velocity = Vec2::new(direction as f32 * BALL_SPEED, 0.0);
     }
 
-    pub fn coordinates(self) -> (Coordinates, Coordinates, Coordinates){
+    pub fn coordinates(&self) -> ReportState {
         let player1 = self.player1.coordinates;
         let player2 = self.player2.coordinates;
         let ball = self.ball.coordinates;
+        let state = self.action_state;
 
-        (player1, player2, ball)
+        ReportState::new(player1, player2, ball, state)
         
     }
 }
@@ -185,20 +189,23 @@ impl State for GameState {
                 self.score2_position.x = WINDOW_WIDTH - (16.0 + optional_score2.width);
             }
             println!("Player 2 wins!");
+            finish(DEFAULT_REPORT_URL, self.coordinates());
         }
 
         if self.ball.coordinates.position.x > WINDOW_WIDTH {
+            finish(DEFAULT_REPORT_URL, self.coordinates());
             self.reset(1);
             self.player1.coordinates.score += 1;
             self.score1.set_content(format!("{}", self.player1.coordinates.score));
             println!("Player 1 wins!");
         }
 
-        let player1 = self.player1.coordinates;
-        let player2 = self.player2.coordinates;
-        let ball = self.ball.coordinates;
-
-        println!("{:?}, {:?}, {:?}", player1, player2, ball);
+        if self.sents >= MAX_CICLES_BEFORE_SEND {
+            report_buffer(DEFAULT_REPORT_URL, self.coordinates());
+            self.sents = 0;
+        } else {
+            self.sents += 1;
+        }
 
         Ok(())
     }

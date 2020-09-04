@@ -7,8 +7,10 @@ mod entity;
 mod game_state;
 mod action_state;
 
+mod integration;
+
 fn main() -> tetra::Result {
-    start_pong();
+    start_pong().unwrap();
 
     Ok(())
 }

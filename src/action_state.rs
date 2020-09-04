@@ -1,9 +1,11 @@
-#[derive(Debug, Copy, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum Direction {
     Up, Down
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct ActionState {
     pub player1: Option<Direction>,
     pub player2: Option<Direction>
