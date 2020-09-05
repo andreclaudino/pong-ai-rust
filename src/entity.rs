@@ -12,17 +12,17 @@ pub struct Entity {
 pub struct Coordinates {
     pub position: Vec2<f32>,
     pub velocity: Vec2<f32>,
-    pub score: u32
+    pub score: f32
 }
 
 impl Entity {
     pub fn new(texture: Texture, position: Vec2<f32>) -> Entity {
-        let coordinates = Coordinates{position, velocity: Vec2::zero(), score: 0};
+        let coordinates = Coordinates{position, velocity: Vec2::zero(), score: 0.0};
         Entity {texture, coordinates}
     }
 
     pub fn with_velocity(texture: Texture, position: Vec2<f32>, velocity: Vec2<f32>) -> Entity {
-        let coordinates = Coordinates{position, velocity, score: 0};
+        let coordinates = Coordinates{position, velocity, score: 0.0};
         Entity{
             texture,
             coordinates

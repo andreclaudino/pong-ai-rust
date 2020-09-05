@@ -1,12 +1,14 @@
 use crate::{entity::Coordinates, action_state::{Direction, ActionState}};
 use reqwest;
 use serde::{Serialize, Deserialize};
+use crate::constants::WINDOW_WIDTH;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReportState {
-    player1: Vec<f32>,
-    player2: Vec<f32>,
-    ball: Vec<f32>,
+    player1: f32,
+    player2: f32,
+    ball1: Vec<f32>,
+    ball2: Vec<f32>,
     action1: Vec<f32>,
     action2: Vec<f32>,
     score: f32
@@ -33,9 +35,10 @@ impl ReportState {
         };
 
         ReportState{
-            player1: Vec::from([player1.position.x, player1.position.y]),
-            player2: Vec::from([player2.position.x, player2.position.y]),
-            ball: Vec::from([ball.position.x, ball.position.y]),
+            player1: player1.position.y,
+            player2: player2.position.y,
+            ball1: Vec::from([ball.position.x, ball.position.y]),
+            ball2: Vec::from([WINDOW_WIDTH - ball.position.x, ball.position.y]),
             action1,
             action2,
             score: 0.0
