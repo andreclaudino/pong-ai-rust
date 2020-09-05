@@ -1,10 +1,10 @@
+/// TODO: aumentar o score sempre que bater na bola, e remover sempre que perder
 use tetra::graphics::{self, Color, Texture, DrawParams};
 use tetra::graphics::text::{Font, Text};
 use tetra::math::Vec2;
 use tetra::{Context, State};
 use tetra::input::{self, Key};
-use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN,
-                       BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND};
+use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, POINTS_ON_WIN, POINTS_ON_LOOSE};
 use crate::entity::Entity;
 use crate::integration::{infer_next_state, ReportState, finish};
 use crate::action_state::{ActionState, Direction};
@@ -187,36 +187,36 @@ impl GameState {
 
         if self.ball.coordinates.position.x < 0.0 {
             self.reset(-1);
-            self.player2.coordinates.score += 1;
+            self.player2.coordinates.score += POINTS_ON_WIN;
             self.score2.set_content(format!("{}", self.player2.coordinates.score));
             if let Some(optional_score2) = self.score2.get_bounds(ctx) {
                 self.score2_position.x = WINDOW_WIDTH - (16.0 + optional_score2.width);
             }
             println!("Player 2 wins!");
 
-            /// Interact with remote server is controller is remote
+            /// Interact with remote server if controller is remote
             if self.p1_remote {
-                finish(&self.p1_bot_url, self.coordinates(), 1.0);
+                finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
             }
             if self.p2_remote {
-                finish(&self.p2_bot_url, self.coordinates(), -1.0);
+                finish(&self.p2_bot_url, self.coordinates(), POINTS_ON_LOOSE);
             }
 
         }
 
         if self.ball.coordinates.position.x > WINDOW_WIDTH {
             self.reset(1);
-            self.player1.coordinates.score += 1;
+            self.player1.coordinates.score += POINTS_ON_WIN;
             self.score1.set_content(format!("{}", self.player1.coordinates.score));
             println!("Player 1 wins!");
 
-            /// Interact with remote server is controller is remote
+            /// Interact with remote server if controller is remote
             if self.p1_remote {
-                finish(&self.p1_bot_url, self.coordinates(), 1.0);
+                finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
             }
 
             if self.p2_remote {
-                finish(&self.p2_bot_url, self.coordinates(), -1.0);
+                finish(&self.p2_bot_url, self.coordinates(), POINTS_ON_LOOSE);
             }
         }
     }

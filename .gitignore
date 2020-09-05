@@ -13,3 +13,5 @@ Cargo.lock
 puzzle-pack-ii/
 
 .vscode/
+
+.idea/
