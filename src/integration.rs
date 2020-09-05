@@ -1,7 +1,7 @@
 use crate::{entity::Coordinates, action_state::{Direction, ActionState}};
 use reqwest;
 use serde::{Serialize, Deserialize};
-use crate::constants::WINDOW_WIDTH;
+use crate::constants::{WINDOW_WIDTH, WINDOW_HEIGHT};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReportState {
@@ -16,9 +16,21 @@ pub struct ReportState {
     score: f32
 }
 
+pub enum Player {
+    Player1,
+    Player2
+}
+
 #[derive(Deserialize)]
 struct ResponseAction {
     action: Option<String>
+}
+
+#[derive[Seriealize, Deserialize, Debug, Clone]]
+struct PlayerState {
+    observation: Vec<f32>,
+    action: Vec<f32>,
+    score: f32
 }
 
 impl ReportState {
@@ -37,10 +49,10 @@ impl ReportState {
         };
 
         ReportState{
-            player1: player1.position.y,
-            player2: player2.position.y,
-            ball1: Vec::from([ball.position.x, ball.position.y]),
-            ball2: Vec::from([WINDOW_WIDTH - ball.position.x, ball.position.y]),
+            player1: player1.position.y/WINDOW_HEIGHT,
+            player2: player2.position.y/WINDOW_HEIGHT,
+            ball1: Vec::from([ball.position.x/WINDOW_WIDTH, ball.position.y/WINDOW_HEIGHT]),
+            ball2: Vec::from([1.0 - ball.position.x/WINDOW_WIDTH, ball.position.y/WINDOW_HEIGHT]),
             ball1_velocity: Vec::from([ball.velocity.x, ball.velocity.y]),
             ball2_velocity: Vec::from([-ball.velocity.x, ball.velocity.y]),
             action1,
@@ -53,6 +65,9 @@ impl ReportState {
         self.score = score;
         self
     }
+
+    pub fn to_player1(&self) -> PlayerState {}
+    pub fn to_player2(&self) -> PlayerState {}
 }
 
 
@@ -70,15 +85,20 @@ pub fn finish(base: &String, reported_state: ReportState, current_score: f32) ->
     ()
 }
 
-pub fn infer_next_state(base: &String, reported_state: ReportState) -> Option<Direction> {
+pub fn infer_next_state(base: &String, reported_state: ReportState, player: Player) -> Option<Direction> {
 
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/{}", base, "buffer");
 
+    let player_state = match player {
+        Player::Player1 => reported_state::to_player1(),
+        Player::Player2 => reported_state::to_player2()
+    };
+
     let response = 
         client.post(url.as_str())
-            .json(&reported_state)
+            .json(&player_state)
             .send()
             .unwrap();
     

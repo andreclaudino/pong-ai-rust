@@ -284,9 +284,7 @@ impl GameState {
 }
 
 
-fn is_player1_remote() -> bool {
-    is_player_remote("P1_IS_REMOTE")
-}
+fn is_player1_remote() -> bool {is_player_remote("P1_IS_REMOTE")}
 
 fn is_player2_remote() -> bool {
     is_player_remote("P2_IS_REMOTE")
