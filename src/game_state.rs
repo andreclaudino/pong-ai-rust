@@ -194,7 +194,7 @@ impl GameState {
             }
             println!("Player 2 wins!");
 
-            /// Interact with remote server if controller is remote
+            // Interact with remote server if controller is remote
             if self.p1_remote {
                 finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
             }
@@ -210,7 +210,7 @@ impl GameState {
             self.score1.set_content(format!("{}", self.player1.coordinates.score));
             println!("Player 1 wins!");
 
-            /// Interact with remote server if controller is remote
+            // Interact with remote server if controller is remote
             if self.p1_remote {
                 finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
             }
@@ -226,13 +226,13 @@ impl GameState {
 impl GameState {
     fn report_state(&mut self) {
         if self.sents >= MAX_CICLES_BEFORE_SEND {
-            /// P1 Reports
+            // P1 Reports
             if self.p1_remote {
                 let p1_direction = infer_next_state(&self.p1_bot_url, self.coordinates());
                 self.action_state.move_p1(p1_direction);
             }
 
-            ///P2 Reports
+            //P2 Reports
             if self.p2_remote {
                 let p1_direction = infer_next_state(&self.p1_bot_url, self.coordinates());
                 self.action_state.move_p2(p1_direction);
@@ -245,7 +245,7 @@ impl GameState {
     }
 }
 
-/// Deal with events
+// Deal with events
 impl GameState {
     fn check_action(&mut self, ctx: &mut Context) {
         if input::is_key_down(ctx, Key::W) && !self.p1_remote {
@@ -266,7 +266,7 @@ impl GameState {
     }
 }
 
-/// Deal with moviments
+// Deal with moviments
 impl GameState {
     fn check_move(&mut self) {
         match self.action_state.player1 {
