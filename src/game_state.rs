@@ -306,5 +306,4 @@ fn is_player_remote(environment_variable: &str) -> bool {
 fn env_or_default(env_name: &str, default: &str) -> String {
     std::env::var(env_name)
         .unwrap_or(default.to_string())
-        .to_uppercase()
 }
