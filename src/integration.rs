@@ -9,6 +9,8 @@ pub struct ReportState {
     player2: f32,
     ball1: Vec<f32>,
     ball2: Vec<f32>,
+    ball1_velocity: Vec<f32>,
+    ball2_velocity: Vec<f32>,
     action1: Vec<f32>,
     action2: Vec<f32>,
     score: f32
@@ -39,6 +41,8 @@ impl ReportState {
             player2: player2.position.y,
             ball1: Vec::from([ball.position.x, ball.position.y]),
             ball2: Vec::from([WINDOW_WIDTH - ball.position.x, ball.position.y]),
+            ball1_velocity: Vec::from([ball.velocity.x, ball.velocity.y]),
+            ball2_velocity: Vec::from([-ball.velocity.x, ball.velocity.y]),
             action1,
             action2,
             score: 0.0
