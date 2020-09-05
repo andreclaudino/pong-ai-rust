@@ -6,5 +6,3 @@ pub const PADDLE_SPIN: f32 = 4.0;
 pub const BALL_ACC: f32 = 0.05;
 pub const PADDLE_X_POSITION: f32 = 32.0;
 pub const MAX_CICLES_BEFORE_SEND: u32 = 10;
-pub const DEFAULT_REPORT_URL: &str = "http://0.0.0.0:8080";
-// pub const MILLIST_TO_RELEASE_KEY: u64 = 300;
