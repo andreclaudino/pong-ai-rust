@@ -249,7 +249,7 @@ impl GameState {
     }
 }
 
-// Deal with replay buffer and event collection from API result
+// Deal with API integration and event collection from API result
 impl GameState {
     fn report_state(&mut self) {
         if self.sents >= MAX_CICLES_BEFORE_SEND {

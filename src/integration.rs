@@ -1,7 +1,7 @@
 use crate::{entity::Coordinates, action_state::{Direction, ActionState}};
 use reqwest;
 use serde::{Serialize, Deserialize};
-use crate::constants::{WINDOW_WIDTH, WINDOW_HEIGHT};
+use crate::constants::{WINDOW_WIDTH, WINDOW_HEIGHT, PLAY_SUFFIX, ACT_SUFFIX, FINISH_SUFFIX};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReportState {
@@ -11,8 +11,8 @@ pub struct ReportState {
     ball2: Vec<f32>,
     ball1_velocity: Vec<f32>,
     ball2_velocity: Vec<f32>,
-    action1: Vec<f32>,
-    action2: Vec<f32>,
+    action1: i8,
+    action2: i8,
     score: f32
 }
 
@@ -28,9 +28,9 @@ struct ResponseAction {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct PlayerState {
+pub struct PlayerState {
     observation: Vec<f32>,
-    action: Vec<f32>,
+    action: i8,
     score: f32,
     player: Player
 }
@@ -39,15 +39,15 @@ impl ReportState {
     pub fn new(player1: Coordinates, player2: Coordinates, ball: Coordinates, actions: ActionState) -> ReportState {
 
         let action1 = match actions.player1 {
-            Some(Direction::Up) => Vec::from([1., 0., 0.]),
-            Some(Direction::Down) => Vec::from([0., 1., 0.]),
-            None => Vec::from([0., 0., 1.])
+            None => 0,
+            Some(Direction::Up) => 1,
+            Some(Direction::Down) => 2,
         };
 
         let action2 = match actions.player2 {
-            Some(Direction::Up) => Vec::from([1., 0., 0.]),
-            Some(Direction::Down) => Vec::from([0., 1., 0.]),
-            None => Vec::from([0., 0., 1.])
+            None => 0,
+            Some(Direction::Up) => 1,
+            Some(Direction::Down) => 2,
         };
 
         ReportState{
@@ -93,7 +93,7 @@ pub fn finish(base: &String, reported_state: ReportState, player: Player, score:
 
     let client = reqwest::blocking::Client::new();
 
-    let url = format!("{}/{}", base, "buffer/finish");
+    let url = format!("{}/{}/{}", base, PLAY_SUFFIX, FINISH_SUFFIX);
 
     let player_state = match player {
         Player::Player1 => reported_state.with_score(score).to_player1(),
@@ -112,7 +112,7 @@ pub fn infer_next_state(base: &String, reported_state: ReportState, player: Play
 
     let client = reqwest::blocking::Client::new();
 
-    let url = format!("{}/{}", base, "buffer");
+    let url = format!("{}/{}/{}", base, PLAY_SUFFIX, ACT_SUFFIX);
 
     let player_state = match player {
         Player::Player1 => reported_state.with_score(score).to_player1(),
