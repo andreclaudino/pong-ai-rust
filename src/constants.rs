@@ -7,4 +7,6 @@ pub const BALL_ACC: f32 = 0.05;
 pub const PADDLE_X_POSITION: f32 = 32.0;
 pub const MAX_CICLES_BEFORE_SEND: u32 = 10;
 pub const POINTS_ON_WIN: f32 = 1.0;
-pub const POINTS_ON_LOOSE: f32 = -0.5;
+pub const POINTS_ON_LOOSE: f32 = 200.0;
+pub const POINTS_ON_TAP: f32 = 1.0;
+pub const POINTS_ON_LEAK: f32 = -0.8;

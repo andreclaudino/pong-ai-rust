@@ -16,6 +16,7 @@ pub struct ReportState {
     score: f32
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Player {
     Player1,
     Player2
@@ -26,11 +27,12 @@ struct ResponseAction {
     action: Option<String>
 }
 
-#[derive[Seriealize, Deserialize, Debug, Clone]]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct PlayerState {
     observation: Vec<f32>,
     action: Vec<f32>,
-    score: f32
+    score: f32,
+    player: Player
 }
 
 impl ReportState {
@@ -66,34 +68,55 @@ impl ReportState {
         self
     }
 
-    pub fn to_player1(&self) -> PlayerState {}
-    pub fn to_player2(&self) -> PlayerState {}
+    pub fn to_player1(self) -> PlayerState {
+        PlayerState {
+            observation: [vec![self.player1, self.player2], self.ball1, self.ball1_velocity].concat(),
+            action: self.action1,
+            score: self.score,
+            player: Player::Player1
+        }
+    }
+
+
+    pub fn to_player2(self) -> PlayerState {
+        PlayerState {
+            observation: [vec![self.player1, self.player2], self.ball1, self.ball1_velocity].concat(),
+            action: self.action1,
+            score: self.score,
+            player: Player::Player2
+        }
+    }
 }
 
 
-pub fn finish(base: &String, reported_state: ReportState, current_score: f32) -> () {
+pub fn finish(base: &String, reported_state: ReportState, player: Player, score: f32) -> () {
 
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/{}", base, "buffer/finish");
-    let state_to_send = reported_state.with_score(current_score);
+
+    let player_state = match player {
+        Player::Player1 => reported_state.with_score(score).to_player1(),
+        Player::Player2 => reported_state.with_score(score).to_player2()
+    };
 
     client.post(url.as_str())
-        .json(&state_to_send)
+        .json(&player_state)
         .send()
         .unwrap();
     ()
 }
 
-pub fn infer_next_state(base: &String, reported_state: ReportState, player: Player) -> Option<Direction> {
+pub fn infer_next_state(base: &String, reported_state: ReportState, player: Player, score: f32)
+    -> Option<Direction> {
 
     let client = reqwest::blocking::Client::new();
 
     let url = format!("{}/{}", base, "buffer");
 
     let player_state = match player {
-        Player::Player1 => reported_state::to_player1(),
-        Player::Player2 => reported_state::to_player2()
+        Player::Player1 => reported_state.with_score(score).to_player1(),
+        Player::Player2 => reported_state.with_score(score).to_player2()
     };
 
     let response = 

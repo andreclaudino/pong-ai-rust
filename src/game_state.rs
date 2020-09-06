@@ -4,9 +4,9 @@ use tetra::graphics::text::{Font, Text};
 use tetra::math::Vec2;
 use tetra::{Context, State};
 use tetra::input::{self, Key};
-use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, POINTS_ON_WIN, POINTS_ON_LOOSE};
+use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, POINTS_ON_WIN, POINTS_ON_LOOSE, POINTS_ON_TAP, POINTS_ON_LEAK};
 use crate::entity::Entity;
-use crate::integration::{infer_next_state, ReportState, finish};
+use crate::integration::{infer_next_state, ReportState, finish, Player};
 use crate::action_state::{ActionState, Direction};
 use tetra;
 
@@ -30,6 +30,9 @@ pub struct GameState {
 
     p1_bot_url: String,
     p2_bot_url: String,
+
+    p1_sub_score: f32,
+    p2_sub_score: f32
 }
 
 impl GameState {
@@ -82,7 +85,10 @@ impl GameState {
             p2_remote,
 
             p1_bot_url,
-            p2_bot_url
+            p2_bot_url,
+
+            p1_sub_score: 0.0,
+            p2_sub_score: 0.0
         })
     }
 
@@ -114,6 +120,10 @@ impl GameState {
         );
         self.ball.coordinates.position = ball_position;
         self.ball.coordinates.velocity = Vec2::new(direction as f32 * BALL_SPEED, 0.0);
+
+        self.p1_sub_score = 0.0;
+        self.p2_sub_score = 0.0
+
     }
 
     pub fn coordinates(&self) -> ReportState {
@@ -167,8 +177,10 @@ impl GameState {
         let ball_bounds = self.ball.bounds();
 
         let paddle_hit = if ball_bounds.intersects(&player1_bounds) {
+            self.p1_sub_score += POINTS_ON_TAP;
             Some(&self.player1)
         } else if ball_bounds.intersects(&player2_bounds) {
+            self.p2_sub_score += POINTS_ON_TAP;
             Some(&self.player2)
         } else {
             None
@@ -177,7 +189,6 @@ impl GameState {
         if let Some(paddle) = paddle_hit {
             self.ball.coordinates.velocity.x = -(self.ball.coordinates.velocity.x + (BALL_ACC * self.ball.coordinates.velocity.x.signum()));
             let offset = (paddle.centre().y - self.ball.centre().y) / paddle.height();
-
             self.ball.coordinates.velocity.y += PADDLE_SPIN * -offset;
         }
 
@@ -196,10 +207,14 @@ impl GameState {
 
             // Interact with remote server if controller is remote
             if self.p1_remote {
-                finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
+                self.p1_sub_score -= POINTS_ON_LOOSE;
+                finish(&self.p1_bot_url, self.coordinates(),
+                       Player::Player1, self.p1_sub_score);
             }
             if self.p2_remote {
-                finish(&self.p2_bot_url, self.coordinates(), POINTS_ON_LOOSE);
+                self.p1_sub_score += POINTS_ON_WIN;
+                finish(&self.p2_bot_url, self.coordinates(),
+                       Player::Player2, self.p2_sub_score);
             }
 
         }
@@ -212,12 +227,24 @@ impl GameState {
 
             // Interact with remote server if controller is remote
             if self.p1_remote {
-                finish(&self.p1_bot_url, self.coordinates(), POINTS_ON_WIN);
+                self.p1_sub_score += POINTS_ON_WIN;
+                finish(&self.p1_bot_url, self.coordinates(),
+                       Player::Player1, self.p1_sub_score);
             }
 
             if self.p2_remote {
-                finish(&self.p2_bot_url, self.coordinates(), POINTS_ON_LOOSE);
+                self.p1_sub_score -= POINTS_ON_LOOSE;
+                finish(&self.p2_bot_url, self.coordinates(),
+                       Player::Player2, self.p2_sub_score);
             }
+        }
+
+        if self.player1.coordinates.position.y < 0.0 || self.player1.coordinates.position.y > 1.0 {
+            self.p1_sub_score -= POINTS_ON_LEAK;
+        }
+
+        if self.player2.coordinates.position.y < 0.0 || self.player2.coordinates.position.y > 1.0 {
+            self.p2_sub_score -= POINTS_ON_LEAK;
         }
     }
 }
@@ -228,13 +255,19 @@ impl GameState {
         if self.sents >= MAX_CICLES_BEFORE_SEND {
             // P1 Reports
             if self.p1_remote {
-                let p1_direction = infer_next_state(&self.p1_bot_url, self.coordinates());
+                let p1_direction = infer_next_state(&self.p1_bot_url,
+                                                    self.coordinates(),
+                                                    Player::Player1,
+                                                    self.p1_sub_score);
                 self.action_state.move_p1(p1_direction);
             }
 
             //P2 Reports
             if self.p2_remote {
-                let p1_direction = infer_next_state(&self.p1_bot_url, self.coordinates());
+                let p1_direction = infer_next_state(&self.p1_bot_url,
+                                                    self.coordinates(),
+                                                    Player::Player2,
+                                                    self.p2_sub_score);
                 self.action_state.move_p2(p1_direction);
             }
 
@@ -243,6 +276,7 @@ impl GameState {
             self.sents += 1;
         }
     }
+
 }
 
 // Deal with events
