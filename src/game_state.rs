@@ -4,7 +4,7 @@ use tetra::graphics::text::{Font, Text};
 use tetra::math::Vec2;
 use tetra::{Context, State};
 use tetra::input::{self, Key};
-use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, POINTS_ON_WIN, POINTS_ON_LOOSE, POINTS_ON_TAP, POINTS_ON_LEAK};
+use crate::constants::{WINDOW_HEIGHT, WINDOW_WIDTH, BALL_SPEED, TOTAL_ROUNDS, PADDLE_SPEED, PADDLE_SPIN, BALL_ACC, PADDLE_X_POSITION, MAX_CICLES_BEFORE_SEND, POINTS_ON_WIN, POINTS_ON_LOOSE, POINTS_ON_TAP, POINTS_ON_LEAK};
 use crate::entity::Entity;
 use crate::integration::{infer_next_state, ReportState, finish, Player};
 use crate::action_state::{ActionState, Direction};
@@ -32,7 +32,9 @@ pub struct GameState {
     p2_bot_url: String,
 
     p1_sub_score: f32,
-    p2_sub_score: f32
+    p2_sub_score: f32,
+
+    rounds: i32,
 }
 
 impl GameState {
@@ -88,7 +90,9 @@ impl GameState {
             p2_bot_url,
 
             p1_sub_score: 0.0,
-            p2_sub_score: 0.0
+            p2_sub_score: 0.0,
+            
+            rounds: 0
         })
     }
 
@@ -96,12 +100,16 @@ impl GameState {
         let p1_remote = is_player1_remote();
         let p2_remote = is_player2_remote();
 
-        let p1_bot_url: String = env_or_default("P1_BOT_URL", "http://0.0.0.0:8080");
-        let p2_bot_url: String = env_or_default("P2_BOT_URL", "http://0.0.0.0:8081");
+        let p1_bot_url: String = env_or_default("P1_BOT_URL", "http://0.0.0.0:8080/agent");
+        let p2_bot_url: String = env_or_default("P2_BOT_URL", "http://0.0.0.0:8081/agent");
         (p1_remote, p2_remote, p1_bot_url, p2_bot_url)
     }
 
     pub fn reset(&mut self, direction: i32){
+
+        self.rounds += 1;
+        print!("Subscore1: {:.1}, Subscore2: {:.1}, Rounds: {:.1} ", self.p1_sub_score, self.p2_sub_score, self.rounds);
+
         let player1_position = Vec2::new(
             PADDLE_X_POSITION,
             (WINDOW_HEIGHT - self.player1.texture.height() as f32) / 2.0,
@@ -122,7 +130,7 @@ impl GameState {
         self.ball.coordinates.velocity = Vec2::new(direction as f32 * BALL_SPEED, 0.0);
 
         self.p1_sub_score = 0.0;
-        self.p2_sub_score = 0.0
+        self.p2_sub_score = 0.0;
 
     }
 
@@ -197,7 +205,7 @@ impl GameState {
         }
 
         if self.ball.coordinates.position.x < 0.0 {
-            self.reset(-1);
+            self.reset(1);
             self.player2.coordinates.score += POINTS_ON_WIN;
             self.score2.set_content(format!("{}", self.player2.coordinates.score));
             if let Some(optional_score2) = self.score2.get_bounds(ctx) {
@@ -206,12 +214,12 @@ impl GameState {
             println!("Player 2 wins!");
 
             // Interact with remote server if controller is remote
-            if self.p1_remote {
+            if self.p1_remote && self.rounds >= TOTAL_ROUNDS {
                 self.p1_sub_score -= POINTS_ON_LOOSE;
                 finish(&self.p1_bot_url, self.coordinates(),
                        Player::Player1, self.p1_sub_score);
             }
-            if self.p2_remote {
+            if self.p2_remote && self.rounds >= TOTAL_ROUNDS {
                 self.p1_sub_score += POINTS_ON_WIN;
                 finish(&self.p2_bot_url, self.coordinates(),
                        Player::Player2, self.p2_sub_score);
@@ -220,31 +228,23 @@ impl GameState {
         }
 
         if self.ball.coordinates.position.x > WINDOW_WIDTH {
-            self.reset(1);
+            self.reset(-1);
             self.player1.coordinates.score += POINTS_ON_WIN;
             self.score1.set_content(format!("{}", self.player1.coordinates.score));
             println!("Player 1 wins!");
 
             // Interact with remote server if controller is remote
-            if self.p1_remote {
+            if self.p1_remote && self.rounds >= TOTAL_ROUNDS  {
                 self.p1_sub_score += POINTS_ON_WIN;
                 finish(&self.p1_bot_url, self.coordinates(),
                        Player::Player1, self.p1_sub_score);
             }
 
-            if self.p2_remote {
+            if self.p2_remote && self.rounds >= TOTAL_ROUNDS {
                 self.p1_sub_score -= POINTS_ON_LOOSE;
                 finish(&self.p2_bot_url, self.coordinates(),
                        Player::Player2, self.p2_sub_score);
             }
-        }
-
-        if self.player1.coordinates.position.y < 0.0 || self.player1.coordinates.position.y > 1.0 {
-            self.p1_sub_score -= POINTS_ON_LEAK;
-        }
-
-        if self.player2.coordinates.position.y < 0.0 || self.player2.coordinates.position.y > 1.0 {
-            self.p2_sub_score -= POINTS_ON_LEAK;
         }
     }
 }
@@ -264,7 +264,7 @@ impl GameState {
 
             //P2 Reports
             if self.p2_remote {
-                let p1_direction = infer_next_state(&self.p1_bot_url,
+                let p1_direction = infer_next_state(&self.p2_bot_url,
                                                     self.coordinates(),
                                                     Player::Player2,
                                                     self.p2_sub_score);
@@ -282,6 +282,14 @@ impl GameState {
 // Deal with events
 impl GameState {
     fn check_action(&mut self, ctx: &mut Context) {
+        if self.player1.coordinates.position.y/WINDOW_HEIGHT < 0.0 || self.player1.coordinates.position.y/WINDOW_HEIGHT > 1.0 {
+            self.p1_sub_score -= POINTS_ON_LEAK;
+        }
+
+        if self.player2.coordinates.position.y/WINDOW_HEIGHT < 0.0 || self.player2.coordinates.position.y/WINDOW_HEIGHT > 1.0 {
+            self.p2_sub_score -= POINTS_ON_LEAK;
+        }
+        
         if input::is_key_down(ctx, Key::W) && !self.p1_remote {
             self.action_state.move_p1(Some(Direction::Up));
         } else if input::is_key_down(ctx, Key::S) && !self.p1_remote {

@@ -1,7 +1,7 @@
 use crate::{entity::Coordinates, action_state::{Direction, ActionState}};
 use reqwest;
 use serde::{Serialize, Deserialize};
-use crate::constants::{WINDOW_WIDTH, WINDOW_HEIGHT, PLAY_SUFFIX, ACT_SUFFIX, FINISH_SUFFIX};
+use crate::constants::{WINDOW_WIDTH, WINDOW_HEIGHT, DISTANCE_FACTOR, TIMEOUT, PLAY_SUFFIX, ACT_SUFFIX, FINISH_SUFFIX};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReportState {
@@ -32,7 +32,7 @@ pub struct PlayerState {
     observation: Vec<f32>,
     action: i8,
     score: f32,
-    player: Player
+    player: Player,
 }
 
 impl ReportState {
@@ -69,20 +69,26 @@ impl ReportState {
     }
 
     pub fn to_player1(self) -> PlayerState {
+        let ball_x = self.ball1[0];
+        let ball_y = self.ball1[1];
+
         PlayerState {
-            observation: [vec![self.player1, self.player2], self.ball1, self.ball1_velocity].concat(),
+            observation: [vec![self.player1, self.player2], vec![ball_x, ball_y], self.ball1_velocity].concat(),
             action: self.action1,
-            score: self.score,
+            score: self.score - 3.0*(ball_y -self.player1).abs(),
             player: Player::Player1
         }
     }
 
 
     pub fn to_player2(self) -> PlayerState {
+        let ball_x = self.ball2[0];
+        let ball_y = self.ball2[1];
+
         PlayerState {
-            observation: [vec![self.player1, self.player2], self.ball1, self.ball1_velocity].concat(),
+            observation: [vec![self.player1, self.player2], vec![ball_x, ball_y], self.ball1_velocity].concat(),
             action: self.action1,
-            score: self.score,
+            score: self.score - DISTANCE_FACTOR*(ball_y -self.player1).abs(),
             player: Player::Player2
         }
     }
@@ -102,6 +108,7 @@ pub fn finish(base: &String, reported_state: ReportState, player: Player, score:
 
     client.post(url.as_str())
         .json(&player_state)
+        .timeout(std::time::Duration::from_secs(TIMEOUT))
         .send()
         .unwrap();
     ()
@@ -122,6 +129,7 @@ pub fn infer_next_state(base: &String, reported_state: ReportState, player: Play
     let response = 
         client.post(url.as_str())
             .json(&player_state)
+            .timeout(std::time::Duration::from_secs(TIMEOUT))
             .send()
             .unwrap();
     
